@@ -1,0 +1,1341 @@
+<!-- 电阻：439
+电容：313  
+{
+    "index": 3,
+    "model": "0603WAF1003T5E",
+    "name": "100kΩ ±1% 100mW 厚膜电阻",
+    "brand": "UNI-ROYAL(厚声)",
+    "package": "0603"
+  }, -->
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<title>立创基础库 - 数据库管理</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				height: 100%;
+				overflow: hidden;
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				background: #2b2b2b;
+				color: #e0e0e0;
+			}
+
+			.container {
+				max-width: 1400px;
+				margin: 0 auto;
+				height: 100vh;
+				display: flex;
+				flex-direction: column;
+				padding: 12px;
+			}
+
+			/* 顶部控制区 - 美化布局 */
+			.control-panel {
+				background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
+				border-radius: 12px;
+				padding: 16px 20px;
+				margin-bottom: 16px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+				border: 1px solid #444;
+				flex-shrink: 0;
+			}
+
+			.control-row {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 12px;
+			}
+
+			/* 数据库状态 - 左对齐 */
+			.db-status {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-size: 15px;
+			}
+
+			.db-status .status-indicator {
+				width: 14px;
+				height: 14px;
+				border-radius: 50%;
+				background: #666;
+				flex-shrink: 0;
+				position: relative;
+			}
+
+			.db-status .status-indicator.online {
+				background: #52c41a;
+				box-shadow:
+					0 0 10px rgba(82, 196, 26, 0.6),
+					0 0 20px rgba(82, 196, 26, 0.4),
+					0 0 30px rgba(82, 196, 26, 0.2);
+				animation: glow 2s ease-in-out infinite;
+			}
+
+			.db-status .status-indicator.offline {
+				background: #ff4d4f;
+			}
+
+			@keyframes glow {
+				0%,
+				100% {
+					box-shadow:
+						0 0 10px rgba(82, 196, 26, 0.6),
+						0 0 20px rgba(82, 196, 26, 0.4),
+						0 0 30px rgba(82, 196, 26, 0.2);
+					transform: scale(1);
+				}
+				50% {
+					box-shadow:
+						0 0 15px rgba(82, 196, 26, 0.8),
+						0 0 30px rgba(82, 196, 26, 0.6),
+						0 0 45px rgba(82, 196, 26, 0.4);
+					transform: scale(1.1);
+				}
+			}
+
+			.db-status .status-text {
+				color: #e0e0e0;
+				font-weight: 500;
+				text-shadow: 0 0 10px rgba(82, 196, 26, 0.3);
+			}
+
+			.btn-group {
+				display: flex;
+				gap: 12px;
+				flex-shrink: 0;
+			}
+
+			/* 图片按钮样式 */
+			.image-btn {
+				width: 36px;
+				height: 36px;
+				border: none;
+				border-radius: 8px;
+				cursor: pointer;
+				transition: all 0.25s ease;
+				background: linear-gradient(135deg, #444 0%, #383838 100%);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				position: relative;
+				box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+			}
+
+			.image-btn img {
+				width: 20px;
+				height: 20px;
+				filter: brightness(0.9);
+				transition: filter 0.25s;
+			}
+
+			.image-btn:hover {
+				background: linear-gradient(135deg, #555 0%, #484848 100%);
+				transform: translateY(-2px);
+				box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+			}
+
+			.image-btn:hover img {
+				filter: brightness(1.1);
+			}
+
+			.image-btn:active {
+				transform: translateY(0);
+			}
+
+			.image-btn:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+				transform: none;
+				background: #444 !important;
+			}
+
+			/* 刷新按钮 */
+			.image-btn.refresh-btn {
+				background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
+			}
+
+			.image-btn.refresh-btn:hover {
+				background: linear-gradient(135deg, #5a9fe9 0%, #458acd 100%);
+			}
+
+			/* 清空按钮 */
+			.image-btn.clear-btn {
+				background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+			}
+
+			.image-btn.clear-btn:hover {
+				background: linear-gradient(135deg, #ff5d5f 0%, #df2332 100%);
+			}
+
+			/* 同步按钮 */
+			.image-btn.sync-btn {
+				background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+			}
+
+			.image-btn.sync-btn:hover {
+				background: linear-gradient(135deg, #62d42a 0%, #48ae1d 100%);
+			}
+
+			.image-btn.sync-btn.syncing {
+				animation: syncPulse 1.5s ease-in-out infinite;
+			}
+
+			@keyframes syncPulse {
+				0%,
+				100% {
+					box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.7);
+				}
+				50% {
+					box-shadow: 0 0 0 6px rgba(82, 196, 26, 0);
+				}
+			}
+
+			/* 悬浮提示 */
+			.image-btn::after {
+				content: attr(data-tooltip);
+				position: absolute;
+				bottom: 100%;
+				left: 50%;
+				transform: translateX(-50%);
+				background: rgba(0, 0, 0, 0.9);
+				color: #fff;
+				font-size: 11px;
+				padding: 4px 8px;
+				border-radius: 4px;
+				white-space: nowrap;
+				opacity: 0;
+				visibility: hidden;
+				transition: all 0.2s;
+				margin-bottom: 8px;
+				z-index: 100;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+			}
+
+			.image-btn::before {
+				content: '';
+				position: absolute;
+				bottom: 100%;
+				left: 50%;
+				transform: translateX(-50%);
+				border: 6px solid transparent;
+				border-top-color: rgba(0, 0, 0, 0.9);
+				opacity: 0;
+				visibility: hidden;
+				transition: all 0.2s;
+				margin-bottom: 2px;
+				z-index: 100;
+			}
+
+			.image-btn:hover::after,
+			.image-btn:hover::before {
+				opacity: 1;
+				visibility: visible;
+			}
+
+			/* 统计信息 - 紧凑显示 */
+			.stats {
+				display: flex;
+				gap: 16px;
+				flex-wrap: wrap;
+				padding-top: 12px;
+				border-top: 1px solid rgba(255, 255, 255, 0.1);
+			}
+
+			.stat-item {
+				background: rgba(42, 42, 42, 0.6);
+				padding: 4px 12px;
+				border-radius: 4px;
+				font-size: 12px;
+				border: 1px solid #444;
+				white-space: nowrap;
+			}
+
+			.stat-item span {
+				color: #4a90d9;
+				font-weight: bold;
+				margin-left: 4px;
+			}
+
+			.stat-item:nth-child(4) span {
+				color: #52c41a;
+			}
+
+			/* 表格区域 - 占据剩余空间 */
+			.table-panel {
+				background: #333;
+				border-radius: 8px;
+				flex: 1;
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+				border: 1px solid #444;
+			}
+
+			.table-header {
+				padding: 10px 16px;
+				background: linear-gradient(135deg, #3a3a3a 0%, #333 100%);
+				border-bottom: 1px solid #444;
+				font-size: 13px;
+				font-weight: 600;
+				color: #ccc;
+				flex-shrink: 0;
+			}
+
+			.table-wrap {
+				flex: 1;
+				overflow-x: auto;
+				overflow-y: auto;
+				background: #2a2a2a;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				font-size: 12px;
+			}
+
+			th,
+			td {
+				padding: 8px 12px;
+				text-align: left;
+				border-bottom: 1px solid #3a3a3a;
+				white-space: nowrap;
+			}
+
+			th {
+				background: linear-gradient(180deg, #2a3f5f 0%, #233650 100%);
+				color: #fff;
+				position: sticky;
+				top: 0;
+				z-index: 10;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+				font-size: 11px;
+			}
+
+			tr:hover {
+				background: rgba(74, 144, 217, 0.1);
+			}
+
+			tr:nth-child(even) {
+				background: rgba(255, 255, 255, 0.02);
+			}
+
+			tr:nth-child(even):hover {
+				background: rgba(74, 144, 217, 0.1);
+			}
+
+			td {
+				color: #ccc;
+			}
+
+			/* 自定义滚动条 */
+			.table-wrap::-webkit-scrollbar {
+				width: 10px;
+				height: 10px;
+			}
+
+			.table-wrap::-webkit-scrollbar-track {
+				background: #2a2a2a;
+			}
+
+			.table-wrap::-webkit-scrollbar-thumb {
+				background: #555;
+				border-radius: 5px;
+				border: 2px solid #2a2a2a;
+			}
+
+			.table-wrap::-webkit-scrollbar-thumb:hover {
+				background: #666;
+			}
+
+			.empty-tip {
+				text-align: center;
+				padding: 60px 20px;
+				color: #888;
+				font-size: 14px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<!-- 顶部控制区 -->
+			<div class="control-panel">
+				<div class="control-row">
+					<div class="db-status">
+						<div class="status-indicator" id="statusIndicator"></div>
+						<span class="status-text" id="dbStatus">未连接</span>
+					</div>
+					<div class="btn-group">
+						<button class="image-btn refresh-btn" onclick="refreshData()" data-tooltip="刷新数据库数据">
+							<img src="../images/icons/icon_refresh.png" alt="刷新" />
+						</button>
+						<button class="image-btn sync-btn" onclick="toggleSync()" id="syncBtn" data-tooltip="同步器件UUID信息">
+							<img src="../images/icons/icon_sync.png" alt="同步" />
+						</button>
+						<button class="image-btn clear-btn" onclick="clearAllData()" data-tooltip="清空数据库数据">
+							<img src="../images/icons/icon_delete.png" alt="清空" />
+						</button>
+					</div>
+				</div>
+				<div class="stats">
+					<div class="stat-item">总记录: <span id="totalCount">0</span></div>
+					<div class="stat-item">电阻: <span id="resistorCount">0</span></div>
+					<div class="stat-item">电容: <span id="capacitorCount">0</span></div>
+					<div class="stat-item">已同步: <span id="syncedCount">0</span>/<span id="needSyncCount">0</span></div>
+					<div class="stat-item">上次更新时间: <span id="lastSyncTime">-</span></div>
+				</div>
+			</div>
+
+			<!-- 表格区域 -->
+			<div class="table-panel">
+				<div class="table-header">数据库预览</div>
+				<div class="table-wrap">
+					<table>
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>类型</th>
+								<th>型号</th>
+								<th>封装</th>
+								<th>产品编号</th>
+								<th>参数值</th>
+								<th>厂商</th>
+							</tr>
+						</thead>
+						<tbody id="componentTable"></tbody>
+					</table>
+					<div id="emptyTip" class="empty-tip" style="display: none">暂无数据，请点击"刷新数据"加载元件信息</div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// ==================== IndexedDB 封装 ====================
+			const DB_NAME = 'BaseLibDB';
+			const DB_VERSION = 3; // 升级版本号以创建新表
+			const STORE_NAME = 'components';
+			const STORE_COMPONENT_TYPES = 'componentTypes'; // 器件类型表
+			const STORE_PACKAGE_TYPES = 'packageTypes'; // 封装类型表
+			const STORE_RESISTOR_VALUES = 'resistorValues'; // 电阻阻值表
+			const STORE_CAPACITOR_VALUES = 'capacitorValues'; // 电容容值表
+
+			let db = null;
+
+			function openDB() {
+				return new Promise((resolve, reject) => {
+					const request = indexedDB.open(DB_NAME, DB_VERSION);
+					request.onerror = () => reject(request.error);
+					request.onsuccess = () => resolve(request.result);
+					request.onupgradeneeded = (event) => {
+						const database = event.target.result;
+
+						// 创建元件数据表
+						if (!database.objectStoreNames.contains(STORE_NAME)) {
+							const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+							store.createIndex('type', 'type', { unique: false });
+							store.createIndex('pkg', 'pkg', { unique: false });
+							store.createIndex('value', 'value', { unique: false });
+							store.createIndex('manufacturer', 'manufacturer', { unique: false });
+							store.createIndex('model', 'model', { unique: false });
+						}
+
+						// 创建器件类型表
+						if (!database.objectStoreNames.contains(STORE_COMPONENT_TYPES)) {
+							const store = database.createObjectStore(STORE_COMPONENT_TYPES, { keyPath: 'id', autoIncrement: true });
+							store.createIndex('name', 'name', { unique: true });
+							store.createIndex('code', 'code', { unique: true });
+						}
+
+						// 创建封装类型表
+						if (!database.objectStoreNames.contains(STORE_PACKAGE_TYPES)) {
+							const store = database.createObjectStore(STORE_PACKAGE_TYPES, { keyPath: 'id', autoIncrement: true });
+							store.createIndex('name', 'name', { unique: true });
+							store.createIndex('code', 'code', { unique: true });
+						}
+
+						// 创建电阻阻值表
+						if (!database.objectStoreNames.contains(STORE_RESISTOR_VALUES)) {
+							const store = database.createObjectStore(STORE_RESISTOR_VALUES, { keyPath: 'id', autoIncrement: true });
+							store.createIndex('value', 'value', { unique: true });
+							store.createIndex('unit', 'unit', { unique: false });
+						}
+
+						// 创建电容容值表
+						if (!database.objectStoreNames.contains(STORE_CAPACITOR_VALUES)) {
+							const store = database.createObjectStore(STORE_CAPACITOR_VALUES, { keyPath: 'id', autoIncrement: true });
+							store.createIndex('value', 'value', { unique: true });
+							store.createIndex('unit', 'unit', { unique: false });
+						}
+					};
+				});
+			}
+
+			async function initDB() {
+				try {
+					db = await openDB();
+					document.getElementById('dbStatus').textContent = '已连接';
+					document.getElementById('statusIndicator').classList.add('online');
+					document.getElementById('statusIndicator').classList.remove('offline');
+					await refreshStats();
+					await renderAllComponents();
+				} catch (error) {
+					console.error('数据库连接失败:', error);
+					document.getElementById('dbStatus').textContent = '连接失败';
+					document.getElementById('statusIndicator').classList.add('offline');
+					document.getElementById('statusIndicator').classList.remove('online');
+				}
+			}
+
+			// ==================== CRUD 操作 ====================
+			function addToDB(data) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_NAME, 'readwrite');
+					const store = tx.objectStore(STORE_NAME);
+					data.updatedAt = new Date().toISOString();
+					const request = store.add(data);
+					request.onsuccess = () => resolve(request.result);
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			function getAllFromDB() {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_NAME, 'readonly');
+					const store = tx.objectStore(STORE_NAME);
+					const request = store.getAll();
+					request.onsuccess = () => resolve(request.result);
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			function deleteFromDB(id) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_NAME, 'readwrite');
+					const store = tx.objectStore(STORE_NAME);
+					const request = store.delete(id);
+					request.onsuccess = () => resolve();
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			function clearDB() {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_NAME, 'readwrite');
+					const store = tx.objectStore(STORE_NAME);
+					const request = store.clear();
+					request.onsuccess = () => resolve();
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			// ==================== 基础表 CRUD 操作 ====================
+
+			// 获取或创建器件类型，返回其 ID
+			async function getOrCreateComponentType(name, code) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_COMPONENT_TYPES, 'readwrite');
+					const store = tx.objectStore(STORE_COMPONENT_TYPES);
+					const index = store.index('code');
+					const request = index.get(code);
+
+					request.onsuccess = () => {
+						if (request.result) {
+							// 已存在，返回 ID
+							resolve(request.result.id);
+						} else {
+							// 不存在，创建新记录
+							const addRequest = store.add({ name, code });
+							addRequest.onsuccess = () => resolve(addRequest.result);
+							addRequest.onerror = () => reject(addRequest.error);
+						}
+					};
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			// 获取或创建封装类型，返回其 ID
+			async function getOrCreatePackageType(name, code) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_PACKAGE_TYPES, 'readwrite');
+					const store = tx.objectStore(STORE_PACKAGE_TYPES);
+					const index = store.index('code');
+					const request = index.get(code);
+
+					request.onsuccess = () => {
+						if (request.result) {
+							resolve(request.result.id);
+						} else {
+							const addRequest = store.add({ name, code });
+							addRequest.onsuccess = () => resolve(addRequest.result);
+							addRequest.onerror = () => reject(addRequest.error);
+						}
+					};
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			// 获取或创建电阻阻值，返回其 ID
+			async function getOrCreateResistorValue(value, unit) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_RESISTOR_VALUES, 'readwrite');
+					const store = tx.objectStore(STORE_RESISTOR_VALUES);
+					const index = store.index('value');
+					const request = index.get(value);
+
+					request.onsuccess = () => {
+						if (request.result) {
+							resolve(request.result.id);
+						} else {
+							const addRequest = store.add({ value, unit });
+							addRequest.onsuccess = () => resolve(addRequest.result);
+							addRequest.onerror = () => reject(addRequest.error);
+						}
+					};
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			// 获取或创建电容容值，返回其 ID
+			async function getOrCreateCapacitorValue(value, unit) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(STORE_CAPACITOR_VALUES, 'readwrite');
+					const store = tx.objectStore(STORE_CAPACITOR_VALUES);
+					const index = store.index('value');
+					const request = index.get(value);
+
+					request.onsuccess = () => {
+						if (request.result) {
+							resolve(request.result.id);
+						} else {
+							const addRequest = store.add({ value, unit });
+							addRequest.onsuccess = () => resolve(addRequest.result);
+							addRequest.onerror = () => reject(addRequest.error);
+						}
+					};
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			// 解析阻值/容值字符串，分离数值和单位
+			function parseValueString(valueStr) {
+				// 匹配数字部分和单位部分，例如 "4.7kΩ" -> { value: "4.7k", unit: "Ω" }
+				const match = valueStr.match(/^([\d.]+[kKMGTμnp]?)\s*(Ω|F|f)?$/i);
+				if (match) {
+					return {
+						value: match[1],
+						unit: match[2] || '',
+					};
+				}
+				// 如果无法解析，返回原值
+				return {
+					value: valueStr,
+					unit: '',
+				};
+			}
+
+			// 清空所有表（包括五张表）并重置自增 ID
+			async function clearAllTables() {
+				if (!db) {
+					throw new Error('数据库未连接');
+				}
+
+				// 关闭当前数据库连接
+				db.close();
+
+				// 删除整个数据库
+				await new Promise((resolve, reject) => {
+					const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+					deleteRequest.onsuccess = () => resolve();
+					deleteRequest.onerror = () => reject(deleteRequest.error);
+					deleteRequest.onblocked = () => {
+						console.warn('数据库删除被阻止，可能有其他标签页正在使用');
+						resolve(); // 即使被阻止也继续
+					};
+				});
+
+				// 重新初始化数据库（会触发 onupgradeneeded 创建所有表，ID 从 1 开始）
+				db = await openDB();
+				document.getElementById('dbStatus').textContent = '已连接';
+				document.getElementById('statusIndicator').classList.add('online');
+				document.getElementById('statusIndicator').classList.remove('offline');
+			}
+
+			// ==================== 业务逻辑 ====================
+
+			// 生成随机延时 (200-500ms)
+			function randomDelay() {
+				return Math.floor(Math.random() * 301) + 200;
+			}
+
+			// 显示加载蒙版
+			function showLoading(message) {
+				let loadingEl = document.getElementById('loadingOverlay');
+				if (!loadingEl) {
+					loadingEl = document.createElement('div');
+					loadingEl.id = 'loadingOverlay';
+					loadingEl.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    backdrop-filter: blur(4px);
+                `;
+					document.body.appendChild(loadingEl);
+				}
+
+				loadingEl.innerHTML = `
+                <div style="background: #333; padding: 30px 40px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 18px; color: #fff; margin-bottom: 15px;">⏳ 正在加载...</div>
+                    <div style="font-size: 14px; color: #aaa;">${message}</div>
+                    <div style="margin-top: 20px; width: 200px; height: 4px; background: #555; border-radius: 2px; overflow: hidden;">
+                        <div id="loadingProgress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #409eff, #66b1ff); transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            `;
+				loadingEl.style.display = 'flex';
+			}
+
+			// 更新加载进度
+			function updateLoadingProgress(percent) {
+				const progressEl = document.getElementById('loadingProgress');
+				if (progressEl) {
+					progressEl.style.width = percent + '%';
+				}
+			}
+
+			// 隐藏加载蒙版
+			function hideLoading() {
+				const loadingEl = document.getElementById('loadingOverlay');
+				if (loadingEl) {
+					loadingEl.style.display = 'none';
+				}
+			}
+
+			// 发送单个请求并处理数据
+			async function fetchAndProcessPage(params, componentTypeId, componentTypeCode, stats) {
+				// 随机延时
+				await new Promise((resolve) => setTimeout(resolve, randomDelay()));
+
+				const response = await fetch('https://so.szlcsc.com/query/product', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json;charset=UTF-8',
+						'Connection': 'close',
+						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+					},
+					body: JSON.stringify(params),
+				});
+
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+
+				const data = await response.json();
+				const productRecordList = data?.result?.searchResult?.productRecordList || [];
+
+				console.log(`第${params.currentPage}页 - 获取到 ${productRecordList.length} 条记录`);
+
+				// 逐个处理产品记录
+				for (const product of productRecordList) {
+					try {
+						const productVo = product.productVO || product.product || product;
+						const paramLinkedMap = product.paramLinkedMap || productVo.paramLinkedMap || {};
+
+						// 提取字段
+						const productCode = productVo.productCode || 'N/A';
+						const model = productVo.productModel || 'N/A';
+						const name = productVo.productName || 'N/A';
+						const brand = productVo.productGradePlateName || productVo.brandName || 'N/A';
+						const packageName = productVo.encapsulationModel || productVo.package || 'N/A';
+						const valueStr = paramLinkedMap['容值'] || paramLinkedMap['阻值'] || 'N/A';
+
+						// 获取或创建封装类型 ID
+						const packageTypeId = await getOrCreatePackageType(packageName, packageName.toLowerCase());
+
+						// 解析值字符串
+						const parsedValue = parseValueString(valueStr);
+
+						// 根据器件类型获取或创建值 ID
+						let valueId;
+						if (componentTypeCode === 'resistor') {
+							valueId = await getOrCreateResistorValue(parsedValue.value, parsedValue.unit);
+						} else if (componentTypeCode === 'capacitor') {
+							valueId = await getOrCreateCapacitorValue(parsedValue.value, parsedValue.unit);
+						} else {
+							valueId = null;
+						}
+
+						// 构建元件数据记录（使用 ID 引用）
+						const componentRecord = {
+							type: componentTypeId,
+							pkg: packageTypeId,
+							value: valueId,
+							model: model,
+							productCode: productCode,
+							name: name,
+							manufacturer: brand,
+							imageUrl: productVo.breviaryImageUrl || null,
+							updatedAt: new Date().toISOString(),
+						};
+
+						// 插入到元件数据表
+						await addToDB(componentRecord);
+						stats.totalCount++;
+					} catch (error) {
+						console.error(`处理产品记录失败:`, error);
+					}
+				}
+
+				return productRecordList.length;
+			}
+
+			async function refreshData() {
+				if (!db) {
+					console.error('请先初始化数据库');
+					return;
+				}
+
+				try {
+					console.log('正在清空所有表...');
+					await clearAllTables();
+					console.log('所有表已清空，开始获取数据...');
+
+					// 配置参数
+					const catalogConfigs = [
+						{ catalogId: '439', typeName: '电阻', typeCode: 'resistor' },
+						{ catalogId: '313', typeName: '电容', typeCode: 'capacitor' },
+					];
+					const packages = ['0402', '0603', '0805', '1206'];
+
+					let totalRequests = catalogConfigs.length * packages.length;
+					let completedRequests = 0;
+					let globalStats = { totalCount: 0 };
+
+					// 遍历所有组合
+					for (const catalogConfig of catalogConfigs) {
+						console.log(`\n========== 开始处理: ${catalogConfig.typeName} ==========`);
+
+						// 获取或创建器件类型 ID
+						const componentTypeId = await getOrCreateComponentType(catalogConfig.typeName, catalogConfig.typeCode);
+						console.log(`${catalogConfig.typeName} 类型 ID: ${componentTypeId}`);
+
+						for (const pkg of packages) {
+							console.log(`\n--- 处理 ${catalogConfig.typeName} - ${pkg} ---`);
+
+							let currentPage = 1;
+							let hasMore = true;
+							let pageCount = 0;
+
+							while (hasMore) {
+								pageCount++;
+								const progress = Math.round((completedRequests / totalRequests) * 100);
+								showLoading(`正在获取: ${catalogConfig.typeName} - ${pkg} (第${pageCount}页)`);
+								updateLoadingProgress(progress);
+
+								// 构建请求参数
+								const params = {
+									'currentPage': currentPage,
+									'pageSize': 30,
+									'catalogIdFilter': catalogConfig.catalogId,
+									'brandIdFilter': '',
+									'standardFilter': '',
+									'arrangeFilter': '',
+									'labelFilter': 'smt基础库',
+									'keyword': pkg,
+									'sortNumber': 0,
+									'satisfyStockType': '',
+									'startPrice': '',
+									'endPrice': '',
+									'demandNumber': '',
+									'spotFilter': 1,
+									'discountFilter': 1,
+									'hasDataFile': false,
+									'brandPlaceFilter': '',
+									'secondKeyword': '',
+									'queryParameterValue': '',
+									'lastParamName': '',
+								};
+
+								// 发送请求并处理数据
+								const resultCount = await fetchAndProcessPage(params, componentTypeId, catalogConfig.typeCode, globalStats);
+
+								// 判断是否还有下一页
+								if (resultCount < 30) {
+									hasMore = false;
+									console.log(`${catalogConfig.typeName} - ${pkg} 完成，共 ${pageCount} 页`);
+								} else {
+									currentPage++;
+								}
+							}
+
+							completedRequests++;
+						}
+					}
+
+					hideLoading();
+					console.log(`\n========== 全部完成！总共导入 ${globalStats.totalCount} 条记录 ==========`);
+
+					// 更新上次更新时间
+					const now = new Date();
+					const timeStr = now.toLocaleString('zh-CN', {
+						year: 'numeric',
+						month: '2-digit',
+						day: '2-digit',
+						hour: '2-digit',
+						minute: '2-digit',
+						second: '2-digit',
+					});
+					document.getElementById('lastSyncTime').textContent = timeStr;
+
+					// 保存到 localStorage
+					localStorage.setItem(STORAGE_KEY, now.toISOString());
+					console.log('更新时间已保存到 localStorage:', now.toLocaleString());
+
+					// 同时更新同步时间显示
+					document.getElementById('lastSyncTime').textContent = timeStr;
+
+					// 刷新统计信息和表格
+					await refreshStats();
+					await renderAllComponents();
+
+					alert(`数据更新完成！\n总共导入 ${globalStats.totalCount} 条记录`);
+				} catch (error) {
+					hideLoading();
+					console.error('刷新失败:', error);
+					alert('刷新失败: ' + error.message);
+				}
+			}
+
+			async function clearAllData() {
+				if (!db) {
+					console.error('请先初始化数据库');
+					return;
+				}
+				if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+				try {
+					await clearAllTables();
+					await refreshStats();
+					await renderAllComponents();
+				} catch (error) {
+					console.error('清空失败:', error);
+				}
+			}
+
+			// ==================== 同步功能 ====================
+			let syncAborted = false;
+			let syncInProgress = false;
+			// 持久化Key：原始总任务数、当前已同步数
+			const SYNC_ORIGIN_TOTAL = 'sync_origin_total';
+			const SYNC_CURR_FINISHED = 'sync_curr_finished';
+
+			// 读取同步进度
+			function getSyncProgress() {
+				const total = parseInt(localStorage.getItem(SYNC_ORIGIN_TOTAL)) || 0;
+				const finished = parseInt(localStorage.getItem(SYNC_CURR_FINISHED)) || 0;
+				return { total, finished };
+			}
+
+			// 保存同步进度
+			function setSyncProgress(total, finished) {
+				localStorage.setItem(SYNC_ORIGIN_TOTAL, total);
+				localStorage.setItem(SYNC_CURR_FINISHED, finished);
+			}
+
+			// 清空本轮同步进度（整轮完成后调用）
+			function clearSyncProgress() {
+				localStorage.removeItem(SYNC_ORIGIN_TOTAL);
+				localStorage.removeItem(SYNC_CURR_FINISHED);
+			}
+
+			async function toggleSync() {
+				if (syncInProgress) {
+					syncAborted = true;
+					document.getElementById('syncBtn').classList.remove('syncing');
+					document.getElementById('syncBtn').setAttribute('data-tooltip', '继续同步器件UUID信息');
+					console.log('同步已暂停');
+					return;
+				}
+				await startSync();
+			}
+
+			async function startSync() {
+				if (!db) {
+					console.error('请先初始化数据库');
+					return;
+				}
+
+				syncAborted = false;
+				syncInProgress = true;
+				const syncBtn = document.getElementById('syncBtn');
+				syncBtn.classList.add('syncing');
+				syncBtn.setAttribute('data-tooltip', '点击暂停同步');
+
+				try {
+					let { total: originTotal, finished: currFinished } = getSyncProgress();
+					const waitList = await getComponentsNeedingSync();
+
+					// 全新一轮同步：初始化原始总数 & 已同步数
+					if (originTotal <= 0) {
+						originTotal = waitList.length;
+						currFinished = 0;
+						setSyncProgress(originTotal, currFinished);
+					}
+
+					// 强制页面显示：已同步 / 原始总数（固定不变）
+					document.getElementById('syncedCount').textContent = currFinished;
+					document.getElementById('needSyncCount').textContent = originTotal;
+
+					console.log(`同步进度：总计${originTotal} | 已同步${currFinished} | 剩余${waitList.length}`);
+
+					for (let i = 0; i < waitList.length; i++) {
+						if (syncAborted) {
+							setSyncProgress(originTotal, currFinished);
+							syncBtn.setAttribute('data-tooltip', '继续同步器件UUID信息');
+							console.log('同步已暂停');
+							break;
+						}
+
+						const component = waitList[i];
+						// 双重过滤已同步项
+						if (component.componentUuid && component.libraryUuid) continue;
+
+						const success = await syncComponentUuid(component);
+						if (success) {
+							currFinished++;
+							document.getElementById('syncedCount').textContent = currFinished;
+							setSyncProgress(originTotal, currFinished);
+							console.log(`同步成功 ${component.productCode} → ${currFinished}/${originTotal}`);
+						}
+
+						// 随机延时 200-500ms
+						const delay = Math.random() * 300 + 200;
+						await new Promise((resolve) => setTimeout(resolve, delay));
+					}
+
+					// 整轮同步全部完成
+					if (!syncAborted) {
+						console.log('本轮同步全部完成');
+						syncBtn.setAttribute('data-tooltip', '同步器件UUID信息');
+						clearSyncProgress();
+
+						saveSyncTime();
+						const now = new Date();
+						document.getElementById('lastSyncTime').textContent = formatSyncTime(now);
+						await refreshStats();
+						await renderAllComponents();
+					}
+				} catch (error) {
+					console.error('同步异常：', error);
+				} finally {
+					syncInProgress = false;
+					syncBtn.classList.remove('syncing');
+				}
+			}
+
+			// 获取缺少UUID的待同步列表
+			async function getComponentsNeedingSync() {
+				return new Promise((resolve, reject) => {
+					const tx = db.transaction([STORE_NAME], 'readonly');
+					const store = tx.objectStore(STORE_NAME);
+					const req = store.getAll();
+					req.onsuccess = () => {
+						const list = req.result.filter((c) => !c.componentUuid || !c.libraryUuid);
+						resolve(list);
+					};
+					req.onerror = () => reject(req.error);
+				});
+			}
+
+			// 同步单个器件UUID
+			async function syncComponentUuid(component) {
+				const productCode = component.productCode;
+				const componentId = component.id;
+				if (!productCode) return false;
+
+				try {
+					const res = await fetch(`https://pro.lceda.cn/api/szlcsc/eda/product/list?wd=${productCode}`);
+					const data = await res.json();
+					if (!data || !data.result || data.result.length === 0) return false;
+
+					const item = data.result[0];
+					const componentUuid = item.uuid;
+					const libraryUuid = item.owner?.uuid;
+					if (!componentUuid || !libraryUuid) return false;
+
+					await updateComponentUuid(componentId, componentUuid, libraryUuid);
+					return true;
+				} catch (err) {
+					console.error(`同步 ${productCode} 失败：`, err);
+					return false;
+				}
+			}
+
+			// 更新数据库中器件UUID
+			async function updateComponentUuid(id, componentUuid, libraryUuid) {
+				return new Promise((resolve, reject) => {
+					const tx = db.transaction([STORE_NAME], 'readwrite');
+					const store = tx.objectStore(STORE_NAME);
+					const req = store.get(parseInt(id));
+
+					req.onsuccess = () => {
+						const comp = req.result;
+						if (comp) {
+							comp.componentUuid = componentUuid;
+							comp.libraryUuid = libraryUuid;
+							comp.updatedAt = new Date().toISOString();
+							store.put(comp);
+						}
+					};
+					tx.oncomplete = () => resolve();
+					tx.onerror = () => reject(tx.error);
+				});
+			}
+
+			// ==================== UI 渲染 ====================
+			async function renderAllComponents() {
+				if (!db) return;
+				try {
+					const data = await getAllFromDB();
+					renderTable(data);
+				} catch (error) {
+					console.error('渲染失败:', error);
+				}
+			}
+
+			function renderTable(data) {
+				const tbody = document.getElementById('componentTable');
+				const emptyTip = document.getElementById('emptyTip');
+				if (data.length === 0) {
+					tbody.innerHTML = '';
+					emptyTip.style.display = 'block';
+					return;
+				}
+				emptyTip.style.display = 'none';
+
+				// 异步加载所有基础数据以解析 ID
+				Promise.all([
+					getAllFromStore(STORE_COMPONENT_TYPES),
+					getAllFromStore(STORE_PACKAGE_TYPES),
+					getAllFromStore(STORE_RESISTOR_VALUES),
+					getAllFromStore(STORE_CAPACITOR_VALUES),
+				])
+					.then(([componentTypes, packageTypes, resistorValues, capacitorValues]) => {
+						// 构建 ID 到名称的映射
+						const componentTypeMap = {};
+						componentTypes.forEach((item) => {
+							componentTypeMap[item.id] = item.name;
+						});
+
+						const packageTypeMap = {};
+						packageTypes.forEach((item) => {
+							packageTypeMap[item.id] = item.name;
+						});
+
+						const resistorValueMap = {};
+						resistorValues.forEach((item) => {
+							resistorValueMap[item.id] = item.value + (item.unit || '');
+						});
+
+						const capacitorValueMap = {};
+						capacitorValues.forEach((item) => {
+							capacitorValueMap[item.id] = item.value + (item.unit || '');
+						});
+
+						// 渲染表格
+						tbody.innerHTML = data
+							.map((item) => {
+								const typeName = componentTypeMap[item.type] || '未知';
+								const pkgName = packageTypeMap[item.pkg] || '-';
+								let valueName = '-';
+								if (item.value) {
+									// 根据器件类型选择对应的值表
+									if (typeName === '电阻') {
+										valueName = resistorValueMap[item.value] || '-';
+									} else if (typeName === '电容') {
+										valueName = capacitorValueMap[item.value] || '-';
+									}
+								}
+
+								return `
+                        <tr>
+                            <td>${item.id}</td>
+                            <td>${typeName}</td>
+                            <td>${item.model || '-'}</td>
+                            <td>${pkgName}</td>
+                            <td>${item.productCode || '-'}</td>
+                            <td>${valueName}</td>
+                            <td>${item.manufacturer || '-'}</td>
+                        </tr>
+                    `;
+							})
+							.join('');
+					})
+					.catch((error) => {
+						console.error('渲染表格失败:', error);
+					});
+			}
+
+			// 通用函数：获取指定表的所有数据
+			function getAllFromStore(storeName) {
+				return new Promise((resolve, reject) => {
+					if (!db) {
+						reject(new Error('数据库未连接'));
+						return;
+					}
+					const tx = db.transaction(storeName, 'readonly');
+					const store = tx.objectStore(storeName);
+					const request = store.getAll();
+					request.onsuccess = () => resolve(request.result);
+					request.onerror = () => reject(request.error);
+				});
+			}
+
+			async function refreshStats() {
+				if (!db) return;
+				try {
+					const data = await getAllFromDB();
+					const componentTypes = await getAllFromStore(STORE_COMPONENT_TYPES);
+
+					// 构建 ID 到名称的映射
+					const typeMap = {};
+					componentTypes.forEach((item) => {
+						typeMap[item.id] = item.name;
+					});
+
+					document.getElementById('totalCount').textContent = data.length;
+
+					// 统计电阻数量
+					let resistorCount = 0;
+					let capacitorCount = 0;
+					let syncedCount = 0;
+					data.forEach((item) => {
+						const typeName = typeMap[item.type];
+						if (typeName === '电阻') resistorCount++;
+						if (typeName === '电容') capacitorCount++;
+						// 统计已同步UUID的器件
+						if (item.componentUuid && item.libraryUuid) syncedCount++;
+					});
+
+					document.getElementById('resistorCount').textContent = resistorCount;
+					document.getElementById('capacitorCount').textContent = capacitorCount;
+					document.getElementById('syncedCount').textContent = syncedCount;
+					document.getElementById('needSyncCount').textContent = data.length - syncedCount;
+				} catch (error) {
+					console.error('统计失败:', error);
+				}
+			}
+
+			// 使用 localStorage 保存和读取同步时间
+			const STORAGE_KEY = 'baselib_last_sync_time';
+
+			function saveSyncTime() {
+				const now = new Date();
+				localStorage.setItem(STORAGE_KEY, now.toISOString());
+				console.log('同步时间已保存:', now.toLocaleString());
+			}
+
+			function loadLastSyncTime() {
+				console.log('loadLastSyncTime 被调用');
+				const savedTime = localStorage.getItem(STORAGE_KEY);
+				console.log('localStorage 数据:', savedTime);
+
+				if (savedTime) {
+					const date = new Date(savedTime);
+					console.log('解析日期:', date);
+					const timeStr = date.toLocaleString('zh-CN', {
+						year: 'numeric',
+						month: '2-digit',
+						day: '2-digit',
+						hour: '2-digit',
+						minute: '2-digit',
+						second: '2-digit',
+					});
+					console.log('格式化时间:', timeStr);
+
+					const element = document.getElementById('lastSyncTime');
+					console.log('元素是否存在:', !!element);
+					if (element) {
+						element.textContent = timeStr;
+						console.log('时间已更新到页面');
+					}
+				} else {
+					console.log('localStorage 中没有同步时间数据');
+				}
+			}
+
+			function formatSyncTime(date) {
+				return date.toLocaleString('zh-CN', {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
+					hour: '2-digit',
+					minute: '2-digit',
+					second: '2-digit',
+				});
+			}
+
+			// ==================== 初始化 ====================
+			window.addEventListener('DOMContentLoaded', async () => {
+				await initDB();
+				loadLastSyncTime();
+
+				// 页面打开优先读取持久化同步进度，覆盖默认统计值
+				const { total, finished } = getSyncProgress();
+				if (total > 0) {
+					document.getElementById('needSyncCount').textContent = total;
+					document.getElementById('syncedCount').textContent = finished;
+				}
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,54 @@
+{
+	"name": "base-lib-tools",
+	"uuid": "5d71a84dd6924fd090cebe9594e88200",
+	"displayName": "立创基础库",
+	"description": "立创基础库快速选择工具",
+	"version": "1.0.0",
+	"publisher": "千樊",
+	"engines": {
+		"eda": "^2.3.0"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "extension-store",
+		"url": ""
+	},
+	"categories": "Other",
+	"keywords": ["SDK"],
+	"images": {
+		"logo": "./images/logo.png"
+	},
+	"homepage": "https://fantech.top",
+	"bugs": "https://lceda.cn/page/feedback?originPage=other",
+	"activationEvents": {},
+	"entry": "./dist/index",
+	"dependentExtensions": {},
+	"externalInteractionPermissions": {
+		"fileSystem": true
+	},
+	"headerMenus": {
+		"sch": [
+			{
+				"id": "BLTMenuMain",
+				"title": "基础库",
+				"menuItems": [
+					{
+						"id": "BaseLib",
+						"title": "立创基础库选择",
+						"registerFn": "BaseLibView"
+					},
+					{
+						"id": "BaseLibUpdate",
+						"title": "数据库更新",
+						"registerFn": "BaseLibUpdateView"
+					},
+					{
+						"id": "About",
+						"title": "关于",
+						"registerFn": "about"
+					}
+				]
+			}
+		]
+	}
+}
