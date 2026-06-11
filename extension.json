@@ -19,7 +19,7 @@
 		"logo": "./images/logo.png"
 	},
 	"homepage": "https://fantech.top",
-	"bugs": "https://lceda.cn/page/feedback?originPage=other",
+	"bugs": "https://github.com/Lesterbor/base-lib-tools/issues",
 	"activationEvents": {},
 	"entry": "./dist/index",
 	"dependentExtensions": {},
